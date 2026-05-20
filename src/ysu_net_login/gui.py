@@ -109,7 +109,11 @@ class YSUNetApp(ctk.CTk):
                 pass
         return {"username": "", "password": "", "save_password": False,
                 "service": "校园网", "auto_login": False, "auto_wifi": False,
-                "proxy": ""}
+                "proxy": "",
+                "auto_reconnect_enabled": False, "auto_reconnect_interval": 5,
+                "auto_reconnect_use_saved_account": True,
+                "auto_reconnect_username": "", "auto_reconnect_password": "",
+                "auto_reconnect_service": "校园网"}
 
     def _save_config(self):
         with open(self.config_file, "w", encoding="utf-8") as f:
@@ -501,6 +505,53 @@ class YSUNetApp(ctk.CTk):
                       fg_color=ACCENT["primary"], hover_color=ACCENT["primary_hover"],
                       command=self._connect_wifi_now).pack(anchor="w", pady=(0, 0))
         ctk.CTkLabel(wifi_inner, text="手动切换到 iYanDa 校园网 WiFi", font=ctk.CTkFont(size=11), text_color=("gray40", "gray60")).pack(anchor="w", pady=(6, 0))
+        # 自动重连
+        reconnect_card = ctk.CTkFrame(scroll, corner_radius=16, border_width=1, fg_color=("gray95", "gray17"), border_color=("gray80", "gray30"))
+        reconnect_card.pack(fill="x", pady=(0, 12))
+        reconnect_inner = ctk.CTkFrame(reconnect_card, fg_color="transparent")
+        reconnect_inner.pack(fill="x", padx=22, pady=18)
+        ctk.CTkLabel(reconnect_inner, text="自动重连", font=ctk.CTkFont(size=15, weight="bold")).pack(anchor="w", pady=(0, 10))
+        self.auto_reconnect_var = ctk.BooleanVar(value=self.app_config.get("auto_reconnect_enabled", False))
+        self.auto_reconnect_check = ctk.CTkCheckBox(reconnect_inner, text="启用定时自动检测与重连",
+                                                      variable=self.auto_reconnect_var,
+                                                      command=self._on_auto_reconnect_toggle,
+                                                      font=ctk.CTkFont(size=12))
+        self.auto_reconnect_check.pack(anchor="w", pady=(0, 10))
+        interval_frame = ctk.CTkFrame(reconnect_inner, fg_color="transparent")
+        interval_frame.pack(fill="x", pady=(0, 8))
+        ctk.CTkLabel(interval_frame, text="检测间隔 (分钟)", font=ctk.CTkFont(size=12), text_color=("gray40", "gray60")).pack(side="left")
+        self.interval_entry = ctk.CTkEntry(interval_frame, width=60, height=30, font=ctk.CTkFont(size=12))
+        self.interval_entry.pack(side="left", padx=(10, 0))
+        self.interval_entry.insert(0, str(self.app_config.get("auto_reconnect_interval", 5)))
+        ctk.CTkLabel(interval_frame, text="范围: 1-60", font=ctk.CTkFont(size=11), text_color=("gray40", "gray60")).pack(side="left", padx=(8, 0))
+        acct_frame = ctk.CTkFrame(reconnect_inner, fg_color="transparent")
+        acct_frame.pack(fill="x", pady=(0, 8))
+        ctk.CTkLabel(acct_frame, text="重连账户", font=ctk.CTkFont(size=12), text_color=("gray40", "gray60")).pack(anchor="w")
+        self.reconnect_use_saved_var = ctk.BooleanVar(value=self.app_config.get("auto_reconnect_use_saved_account", True))
+        ctk.CTkRadioButton(acct_frame, text="使用已保存的账号", variable=self.reconnect_use_saved_var, value=True,
+                           command=self._on_reconnect_account_change, font=ctk.CTkFont(size=12)).pack(anchor="w", pady=(4, 0))
+        ctk.CTkRadioButton(acct_frame, text="指定其他账号", variable=self.reconnect_use_saved_var, value=False,
+                           command=self._on_reconnect_account_change, font=ctk.CTkFont(size=12)).pack(anchor="w", pady=(4, 0))
+        self.reconnect_custom_frame = ctk.CTkFrame(reconnect_inner, fg_color="transparent")
+        self.reconnect_custom_frame.pack(fill="x", pady=(8, 0))
+        ctk.CTkLabel(self.reconnect_custom_frame, text="用户名", font=ctk.CTkFont(size=12), text_color=("gray40", "gray60")).pack(anchor="w")
+        self.reconnect_user_entry = ctk.CTkEntry(self.reconnect_custom_frame, placeholder_text="学号/工号", height=32, font=ctk.CTkFont(size=12))
+        self.reconnect_user_entry.pack(fill="x", pady=(2, 6))
+        self.reconnect_user_entry.insert(0, self.app_config.get("auto_reconnect_username", ""))
+        ctk.CTkLabel(self.reconnect_custom_frame, text="密码", font=ctk.CTkFont(size=12), text_color=("gray40", "gray60")).pack(anchor="w")
+        self.reconnect_pwd_entry = ctk.CTkEntry(self.reconnect_custom_frame, placeholder_text="密码", height=32, font=ctk.CTkFont(size=12), show="●")
+        self.reconnect_pwd_entry.pack(fill="x", pady=(2, 6))
+        self.reconnect_pwd_entry.insert(0, self.app_config.get("auto_reconnect_password", ""))
+        svc_frame = ctk.CTkFrame(reconnect_inner, fg_color="transparent")
+        svc_frame.pack(fill="x", pady=(0, 8))
+        ctk.CTkLabel(svc_frame, text="重连运营商", font=ctk.CTkFont(size=12), text_color=("gray40", "gray60")).pack(side="left")
+        self.reconnect_service_combo = ctk.CTkComboBox(svc_frame, values=SERVICES, width=130, font=ctk.CTkFont(size=12))
+        self.reconnect_service_combo.pack(side="left", padx=(10, 0))
+        self.reconnect_service_combo.set(self.app_config.get("auto_reconnect_service", "校园网"))
+        ctk.CTkButton(reconnect_inner, text="保存重连设置", width=140, height=34, font=ctk.CTkFont(size=12),
+                      fg_color=ACCENT["primary"], hover_color=ACCENT["primary_hover"],
+                      command=self._save_reconnect_settings).pack(anchor="w", pady=(10, 0))
+        self._on_reconnect_account_change()
         # 数据
         card3 = ctk.CTkFrame(scroll, corner_radius=16, border_width=1, fg_color=("gray95", "gray17"), border_color=("gray80", "gray30"))
         card3.pack(fill="x", pady=(0, 12))
@@ -512,6 +563,69 @@ class YSUNetApp(ctk.CTk):
         ctk.CTkButton(inner3, text="查看已保存账号", width=150, height=34, font=ctk.CTkFont(size=12),
                       fg_color="transparent", command=self._show_saved_account_dialog).pack(anchor="w", pady=(8, 0))
         ctk.CTkLabel(inner3, text=f"配置存储位置: {self.data_dir}", font=ctk.CTkFont(size=11), text_color=("gray40", "gray60")).pack(anchor="w", pady=(10, 0))
+
+    def _on_auto_reconnect_toggle(self):
+        pass
+
+    def _on_reconnect_account_change(self):
+        if self.reconnect_use_saved_var.get():
+            self.reconnect_custom_frame.pack_forget()
+        else:
+            self.reconnect_custom_frame.pack(fill="x", pady=(8, 0))
+
+    def _save_reconnect_settings(self):
+        try:
+            interval = int(self.interval_entry.get().strip())
+            if interval < 1:
+                interval = 1
+            elif interval > 60:
+                interval = 60
+        except ValueError:
+            interval = 5
+        self.app_config["auto_reconnect_enabled"] = self.auto_reconnect_var.get()
+        self.app_config["auto_reconnect_interval"] = interval
+        self.app_config["auto_reconnect_use_saved_account"] = self.reconnect_use_saved_var.get()
+        self.app_config["auto_reconnect_username"] = self.reconnect_user_entry.get().strip()
+        self.app_config["auto_reconnect_password"] = self.reconnect_pwd_entry.get().strip()
+        self.app_config["auto_reconnect_service"] = self.reconnect_service_combo.get()
+        self._save_config()
+        self._log(f"自动重连设置已保存 (间隔: {interval} 分钟)")
+        messagebox.showinfo("保存成功", f"自动重连设置已保存\n检测间隔: {interval} 分钟")
+        # 重新启动定时器
+        if hasattr(self, '_reconnect_timer_id') and self._reconnect_timer_id:
+            self.after_cancel(self._reconnect_timer_id)
+        self._schedule_reconnect()
+
+    def _schedule_reconnect(self):
+        interval_ms = self.app_config.get("auto_reconnect_interval", 5) * 60 * 1000
+        self._reconnect_timer_id = self.after(interval_ms, self._scheduled_reconnect_check)
+
+    def _scheduled_reconnect_check(self):
+        try:
+            if not self.app_config.get("auto_reconnect_enabled"):
+                return
+            # 确定使用的账号
+            if self.app_config.get("auto_reconnect_use_saved_account", True):
+                user = self.app_config.get("username", "")
+                pwd = self.app_config.get("password", "")
+            else:
+                user = self.app_config.get("auto_reconnect_username", "")
+                pwd = self.app_config.get("auto_reconnect_password", "")
+            svc = self.app_config.get("auto_reconnect_service", "校园网")
+            if not user or not pwd:
+                self._log("自动重连: 未配置有效账号，跳过")
+                return
+            client = RuijieClient()
+            status = client.get_status()
+            if not status.get("online"):
+                self._log(f"自动重连: 检测到未登录，正在使用 {user} 登录 {svc}...")
+                threading.Thread(target=self._login_worker, args=(user, pwd, svc), daemon=True).start()
+            else:
+                self._log("自动重连: 已在线，无需操作")
+        except Exception as e:
+            self._log(f"自动重连检测失败: {e}")
+        finally:
+            self._schedule_reconnect()
 
     def _apply_mica(self):
         pass
@@ -750,7 +864,7 @@ class YSUNetApp(ctk.CTk):
 
     def _startup_checks(self):
         self.after(2000, self._auto_check_status)
-        self.after(5000, self._start_auto_reconnect_timer)
+        self.after(5000, self._schedule_reconnect)
 
     def _auto_check_status(self):
         self.refresh_status()
@@ -761,28 +875,6 @@ class YSUNetApp(ctk.CTk):
             if user and pwd:
                 self._log("自动登录中...")
                 threading.Thread(target=self._login_worker, args=(user, pwd, svc), daemon=True).start()
-
-    def _start_auto_reconnect_timer(self):
-        self._auto_reconnect_check()
-
-    def _auto_reconnect_check(self):
-        try:
-            if self.app_config.get("auto_login") and self.app_config.get("username") and self.app_config.get("password"):
-                client = RuijieClient()
-                status = client.get_status()
-                if not status.get("online") and self.is_logged_in:
-                    self._log("检测到掉线，尝试自动重连...")
-                    self.is_logged_in = False
-                    self._update_status_ui({"online": False})
-                    self._show_login_form_view()
-                    threading.Thread(target=self._login_worker, args=(
-                        self.app_config["username"],
-                        self.app_config["password"],
-                        self.app_config.get("service", "校园网")
-                    ), daemon=True).start()
-        except Exception:
-            pass
-        self.after(60000, self._auto_reconnect_check)
 
     def _log(self, message):
         self.log_label.configure(text=message)

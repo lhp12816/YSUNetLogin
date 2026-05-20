@@ -21,7 +21,7 @@
 
 ## 文件归属
 
-- 核心认证逻辑来自 [CharlesLiu7/YSUNetLogin](https://github.com/CharlesLiu7/YSUNetLogin)
+- 核心认证逻辑来自 [KamijoToma/YSUNetLoginv2](https://github.com/KamijoToma/YSUNetLoginv2)
 - 图形界面、WiFi 管理、打包脚本为本项目新增
 
 ## 下载

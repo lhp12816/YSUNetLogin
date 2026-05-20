@@ -4,7 +4,7 @@
 
 ## 项目来源与归属
 
-本项目基于 [CharlesLiu7/YSUNetLogin](https://github.com/CharlesLiu7/YSUNetLogin)（原 YSUNetLoginv2）进行扩展开发。
+本项目基于 [KamijoToma/YSUNetLoginv2](https://github.com/KamijoToma/YSUNetLoginv2)（原 YSUNetLoginv2）进行扩展开发。
 
 **来自原项目的文件：**
 - `src/ysu_net_login/ruijie_client.py` — 锐捷认证客户端核心逻辑
@@ -19,7 +19,7 @@
 - `build_exe.py` — 打包脚本
 - `README.md`、`LICENSE` — 项目文档
 
-感谢原作者 [CharlesLiu7](https://github.com/CharlesLiu7) 提供的核心认证实现。
+感谢原作者 [KamijoToma](https://github.com/KamijoToma) 提供的核心认证实现。
 
 **开发说明：** 本项目的图形界面、WiFi 管理模块和构建脚本由 AI 辅助开发（基于 Claude/GPT 等 LLM 工具），核心网络认证逻辑来自原项目。
 
