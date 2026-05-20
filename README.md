@@ -46,7 +46,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/YOUR_USERNAME/YSUNetLogin.git
+git clone https://github.com/lhp12816/YSUNetLogin.git
 cd YSUNetLogin
 
 # 创建虚拟环境并安装依赖
