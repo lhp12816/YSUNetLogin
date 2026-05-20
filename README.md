@@ -2,13 +2,6 @@
 
 燕山大学校园网登录图形界面工具
 
-## 项目来源
-
-本项目基于 [YSUNetLoginv2](https://github.com/CharlesLiu7/YSUNetLogin) 进行扩展，新增图形界面和 WiFi 管理功能。
-
-- **核心认证逻辑**（`ruijie_client.py`、`config.py`、`ysu_login.py`、`ruijie_cli.py`）来自原项目 [YSUNetLoginv2](https://github.com/CharlesLiu7/YSUNetLogin)，感谢原作者 CharlesLiu7
-- **图形界面**（`gui.py`）、**WiFi 管理**（`wifi_manager.py`）、**构建脚本**（`build_exe.py`、`gui_launcher.py`）为本项目新增
-
 ## 项目来源与归属
 
 本项目基于 [CharlesLiu7/YSUNetLogin](https://github.com/CharlesLiu7/YSUNetLogin)（原 YSUNetLoginv2）进行扩展开发。
