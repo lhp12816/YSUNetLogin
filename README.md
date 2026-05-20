@@ -9,6 +9,25 @@
 - **核心认证逻辑**（`ruijie_client.py`、`config.py`、`ysu_login.py`、`ruijie_cli.py`）来自原项目 [YSUNetLoginv2](https://github.com/CharlesLiu7/YSUNetLogin)，感谢原作者 CharlesLiu7
 - **图形界面**（`gui.py`）、**WiFi 管理**（`wifi_manager.py`）、**构建脚本**（`build_exe.py`、`gui_launcher.py`）为本项目新增
 
+## 项目来源与归属
+
+本项目基于 [CharlesLiu7/YSUNetLogin](https://github.com/CharlesLiu7/YSUNetLogin)（原 YSUNetLoginv2）进行扩展开发。
+
+**来自原项目的文件：**
+- `src/ysu_net_login/ruijie_client.py` — 锐捷认证客户端核心逻辑
+- `src/ysu_net_login/config.py` — 配置与加密工具
+- `src/ysu_net_login/ysu_login.py` — 燕山大学网络登录流程
+- `src/ysu_net_login/ruijie_cli.py` — 命令行接口
+
+**本项目新增/重写的文件：**
+- `src/ysu_net_login/gui.py` — 图形界面（完全重写）
+- `src/ysu_net_login/wifi_manager.py` — Windows WiFi 自动连接
+- `gui_launcher.py` — PyInstaller 启动入口
+- `build_exe.py` — 打包脚本
+- `README.md`、`LICENSE` — 项目文档
+
+感谢原作者 [CharlesLiu7](https://github.com/CharlesLiu7) 提供的核心认证实现。
+
 ## 功能特性
 
 
