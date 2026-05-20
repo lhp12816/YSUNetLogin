@@ -24,7 +24,7 @@
 - [ ] EXE 可独立运行，无额外依赖
 
 ### Git 仓库
-- [ ] 远程仓库已配置为 `https://github.com/Halck/YSUNetLogin.git`
+- [ ] 远程仓库已配置为 `https://github.com/lhp12816/YSUNetLogin.git`
 - [ ] 分支为 `main`
 - [ ] 所有更改已提交
 
@@ -41,7 +41,7 @@ git push -u origin main
 若失败，尝试设置代理后重试。
 
 ### 方式二：GitHub 网页上传
-1. 访问 https://github.com/Halck/YSUNetLogin
+1. 访问 https://github.com/lhp12816/YSUNetLogin
 2. 点击 "Add file" → "Upload files"
 3. 拖拽 `D:\Desktop\ysunet` 下所有文件（除 `.venv/`、`dist/`、`.git/`）
 4. 提交更改
@@ -51,6 +51,6 @@ git push -u origin main
 若 GitHub 持续无法访问，可考虑同步发布到 Gitee：
 ```powershell
 cd D:\Desktop\ysunet
-git remote add gitee https://gitee.com/Halck/YSUNetLogin.git
+git remote add gitee https://gitee.com/lhp12816/YSUNetLogin.git
 git push -u gitee main
 ```
