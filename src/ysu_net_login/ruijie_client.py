@@ -149,7 +149,7 @@ class RuijieClient:
 
         return node_resp
 
-    def cas_sso_login(self, username, password, session_info):
+    def cas_sso_login(self, username, password, session_info, captcha=None):
         """
         通过cas-sso直接登录(浏览器实际使用的流程)
 
@@ -197,7 +197,7 @@ class RuijieClient:
 
         # Step 2: Encrypt password with AES-ECB
         encrypted_password = self._aes_encrypt_ecb(croypto, password)
-        encrypted_captcha = self._aes_encrypt_ecb(croypto, '{}')
+        encrypted_captcha = self._aes_encrypt_ecb(croypto, captcha or '')
 
         # Step 3: POST login form
         post_url = cas_sso_url + "&accept-language=zh-CN"
@@ -207,7 +207,7 @@ class RuijieClient:
             '_eventId': 'submit',
             'geolocation': '',
             'execution': execution,
-            'captcha_code': '',
+            'captcha_code': captcha or '',
             'croypto': croypto,
             'password': encrypted_password,
             'captcha_payload': encrypted_captcha,
@@ -484,7 +484,7 @@ class RuijieClient:
         account_url = "https://auth1.ysu.edu.cn/eportal/operator/getAccountInfo"
         response = self.client.post(account_url, json={
             "sessionId": session_info['sessionId']
-        }, proxies=self.proxies)
+        }, proxies=self.proxies, timeout=10)
         
         return self._unwrap_response(response, json_response=True)
 
@@ -556,7 +556,7 @@ class RuijieClient:
                 self._log(f"Get services failed: {e}")
             raise e
 
-    def login(self, username, password, service="校园网"):
+    def login(self, username, password, service="校园网", captcha=None):
         """
         执行完整的登录流程
 
@@ -564,6 +564,7 @@ class RuijieClient:
             username: 用户名
             password: 密码
             service: 要登录的服务名称
+            captcha: 验证码(可选)
 
         Returns:
             bool: 登录是否成功
@@ -580,7 +581,7 @@ class RuijieClient:
             self._log(f"Got session info: {session_info}")
 
             # 3. 通过cas-sso直接登录
-            self.cas_sso_login(username, password, session_info)
+            self.cas_sso_login(username, password, session_info, captcha=captcha)
 
             # 5. 获取服务列表
             services = self.service_selection(session_info)

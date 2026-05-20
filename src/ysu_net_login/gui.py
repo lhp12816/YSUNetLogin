@@ -8,6 +8,7 @@ import threading
 import os
 import sys
 import json
+import winreg
 from pathlib import Path
 
 _current_file = Path(__file__).resolve()
@@ -113,7 +114,8 @@ class YSUNetApp(ctk.CTk):
                 "auto_reconnect_enabled": False, "auto_reconnect_interval": 5,
                 "auto_reconnect_use_saved_account": True,
                 "auto_reconnect_username": "", "auto_reconnect_password": "",
-                "auto_reconnect_service": "校园网"}
+                "auto_reconnect_service": "校园网",
+                "startup_enabled": False}
 
     def _save_config(self):
         with open(self.config_file, "w", encoding="utf-8") as f:
@@ -448,6 +450,7 @@ class YSUNetApp(ctk.CTk):
             lbl = ctk.CTkLabel(self.account_content, text=msg, font=ctk.CTkFont(size=13), text_color=("gray40", "gray60"))
             lbl.pack(pady=30)
             self.account_rows.append(lbl)
+            self._log(msg)
             return
         if isinstance(data, dict):
             basic = {k: v for k, v in data.items() if k != "accountInfo" and v is not None and v != ""}
@@ -469,6 +472,7 @@ class YSUNetApp(ctk.CTk):
                         if t and c:
                             self._add_account_row(self.account_content, t, c)
 
+        self._log("账户信息已更新")
     def _add_account_row(self, parent, label, value):
         row = ctk.CTkFrame(parent, fg_color="transparent")
         row.pack(fill="x", pady=3)
@@ -552,6 +556,19 @@ class YSUNetApp(ctk.CTk):
                       fg_color=ACCENT["primary"], hover_color=ACCENT["primary_hover"],
                       command=self._save_reconnect_settings).pack(anchor="w", pady=(10, 0))
         self._on_reconnect_account_change()
+        # 系统
+        sys_card = ctk.CTkFrame(scroll, corner_radius=16, border_width=1, fg_color=("gray95", "gray17"), border_color=("gray80", "gray30"))
+        sys_card.pack(fill="x", pady=(0, 12))
+        sys_inner = ctk.CTkFrame(sys_card, fg_color="transparent")
+        sys_inner.pack(fill="x", padx=22, pady=18)
+        ctk.CTkLabel(sys_inner, text="系统", font=ctk.CTkFont(size=15, weight="bold")).pack(anchor="w", pady=(0, 10))
+        self.startup_var = ctk.BooleanVar(value=self.app_config.get("startup_enabled", False))
+        self.startup_check = ctk.CTkCheckBox(sys_inner, text="开机自动启动 YSUNetLogin",
+                                               variable=self.startup_var,
+                                               command=self._toggle_startup,
+                                               font=ctk.CTkFont(size=12))
+        self.startup_check.pack(anchor="w", pady=(0, 6))
+        ctk.CTkLabel(sys_inner, text="程序将在 Windows 登录后自动启动", font=ctk.CTkFont(size=11), text_color=("gray40", "gray60")).pack(anchor="w")
         # 数据
         card3 = ctk.CTkFrame(scroll, corner_radius=16, border_width=1, fg_color=("gray95", "gray17"), border_color=("gray80", "gray30"))
         card3.pack(fill="x", pady=(0, 12))
@@ -589,14 +606,56 @@ class YSUNetApp(ctk.CTk):
         self.app_config["auto_reconnect_password"] = self.reconnect_pwd_entry.get().strip()
         self.app_config["auto_reconnect_service"] = self.reconnect_service_combo.get()
         self._save_config()
-        self._log(f"自动重连设置已保存 (间隔: {interval} 分钟)")
-        messagebox.showinfo("保存成功", f"自动重连设置已保存\n检测间隔: {interval} 分钟")
-        # 重新启动定时器
+        state = "已启用" if self.auto_reconnect_var.get() else "已禁用"
+        self._log(f"自动重连设置已保存 ({state}, 间隔: {interval} 分钟)")
+        messagebox.showinfo("保存成功", f"自动重连 {state}\n检测间隔: {interval} 分钟")
+        # 重新启动/停止定时器
         if hasattr(self, '_reconnect_timer_id') and self._reconnect_timer_id:
             self.after_cancel(self._reconnect_timer_id)
-        self._schedule_reconnect()
+            self._reconnect_timer_id = None
+        if self.app_config.get("auto_reconnect_enabled"):
+            self._schedule_reconnect()
+
+    def _toggle_startup(self):
+        enabled = self.startup_var.get()
+        self.app_config["startup_enabled"] = enabled
+        self._save_config()
+        ok = self._set_startup_registry(enabled)
+        if ok:
+            state = "已启用" if enabled else "已禁用"
+            self._log(f"开机自启动 {state}")
+            messagebox.showinfo("设置成功", f"开机自启动 {state}")
+        else:
+            self.startup_var.set(not enabled)
+            self.app_config["startup_enabled"] = not enabled
+            self._save_config()
+            messagebox.showerror("设置失败", "修改注册表失败，请以管理员身份运行或检查权限")
+
+    def _set_startup_registry(self, enable):
+        try:
+            key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+            app_name = "YSUNetLogin"
+            if enable:
+                if getattr(sys, 'frozen', False):
+                    exe_path = sys.executable
+                else:
+                    exe_path = os.path.abspath(sys.argv[0])
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE) as key:
+                    winreg.SetValueEx(key, app_name, 0, winreg.REG_SZ, exe_path)
+            else:
+                try:
+                    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE) as key:
+                        winreg.DeleteValue(key, app_name)
+                except FileNotFoundError:
+                    pass
+            return True
+        except Exception as e:
+            self._log(f"设置开机启动失败: {e}")
+            return False
 
     def _schedule_reconnect(self):
+        if not self.app_config.get("auto_reconnect_enabled"):
+            return
         interval_ms = self.app_config.get("auto_reconnect_interval", 5) * 60 * 1000
         self._reconnect_timer_id = self.after(interval_ms, self._scheduled_reconnect_check)
 
@@ -625,7 +684,8 @@ class YSUNetApp(ctk.CTk):
         except Exception as e:
             self._log(f"自动重连检测失败: {e}")
         finally:
-            self._schedule_reconnect()
+            if self.app_config.get("auto_reconnect_enabled"):
+                self._schedule_reconnect()
 
     def _apply_mica(self):
         pass
@@ -711,6 +771,10 @@ class YSUNetApp(ctk.CTk):
         messagebox.showinfo("清除完成", "已清除保存的账号和密码数据")
 
     def _do_login(self):
+        if self.is_logged_in:
+            self._log("已登录，跳转到状态页面")
+            self.show_page("status")
+            return
         username = self.username_entry.get().strip()
         password = self.password_entry.get().strip()
         service = self.service_combo.get()
@@ -854,17 +918,34 @@ class YSUNetApp(ctk.CTk):
         threading.Thread(target=self._account_worker, daemon=True).start()
 
     def _account_worker(self):
+        import concurrent.futures
         try:
-            client = RuijieClient()
-            info = client.get_account_info()
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(self._fetch_account_info)
+                info = future.result(timeout=15)
             self.after(0, lambda: self._update_account_display(info))
+        except concurrent.futures.TimeoutError:
+            self.after(0, lambda: self._update_account_display({"提示": "获取超时，请检查网络连接"}))
+            self.after(0, lambda: self.account_error_label.configure(text="获取超时: 服务器未响应"))
+            self.after(0, lambda: self._log("账户信息获取超时"))
         except Exception as e:
             err = get_error_message(e)
+            self.after(0, lambda: self._update_account_display({"提示": f"获取失败: {err}"}))
             self.after(0, lambda: self.account_error_label.configure(text=f"获取失败: {err}"))
+            self.after(0, lambda: self._log(f"账户信息获取失败: {err}"))
+
+    def _fetch_account_info(self):
+        client = RuijieClient()
+        return client.get_account_info()
 
     def _startup_checks(self):
+        self._apply_startup_if_needed()
         self.after(2000, self._auto_check_status)
         self.after(5000, self._schedule_reconnect)
+
+    def _apply_startup_if_needed(self):
+        if self.app_config.get("startup_enabled", False):
+            self._set_startup_registry(True)
 
     def _auto_check_status(self):
         self.refresh_status()
@@ -877,7 +958,8 @@ class YSUNetApp(ctk.CTk):
                 threading.Thread(target=self._login_worker, args=(user, pwd, svc), daemon=True).start()
 
     def _log(self, message):
-        self.log_label.configure(text=message)
+        if hasattr(self, "log_label") and self.log_label and self.log_label.winfo_exists():
+            self.log_label.configure(text=message)
         print(f"[YSUNetLogin] {message}")
 
 
