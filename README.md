@@ -21,6 +21,8 @@
 
 感谢原作者 [CharlesLiu7](https://github.com/CharlesLiu7) 提供的核心认证实现。
 
+**开发说明：** 本项目的图形界面、WiFi 管理模块和构建脚本由 AI 辅助开发（基于 Claude/GPT 等 LLM 工具），核心网络认证逻辑来自原项目。
+
 ## 功能特性
 
 
